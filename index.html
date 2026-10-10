@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>五角形フラクタル SVG書き出し</title>
+<style>
+:root{--bg:#eef1f6;--panel:#fff;--text:#1b2233;--sub:#58627a;--line:#d3d9e6;--accent:#2f4fd0;--accent-text:#fff;--check1:#fff;--check2:#e3e7ef}
+@media (prefers-color-scheme:dark){:root{--bg:#10141d;--panel:#1a2030;--text:#e6e9f2;--sub:#9aa5bd;--line:#2f384e;--accent:#7a97ff;--accent-text:#0e1424;--check1:#232a3b;--check2:#1b2130}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 "Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:20px;display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:820px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+fieldset{border:0;border-top:1px solid var(--line);margin:14px 0 0;padding:12px 0 0}
+fieldset:first-of-type{border-top:0;margin-top:0;padding-top:0}
+legend{font-weight:600;padding:0;margin-bottom:8px;font-size:14px}
+.row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.row label{flex:0 0 5.5em;color:var(--sub);font-size:14px}
+.row input[type=range]{flex:1;min-width:0}
+.row .val{flex:0 0 4.5em;text-align:right;font-variant-numeric:tabular-nums}
+select,input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);font:inherit}
+input[type=number]{width:6.5em}
+input[type=color]{width:42px;height:30px;padding:0;border:1px solid var(--line);border-radius:6px;background:none}
+.size{display:flex;align-items:center;gap:8px}
+.chk{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text)}
+button{font:inherit;cursor:pointer;border-radius:6px;padding:9px 14px;border:1px solid var(--line);background:var(--panel);color:var(--text)}
+button.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:600;width:100%;margin-top:6px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stage{background-color:var(--check1);background-image:linear-gradient(45deg,var(--check2) 25%,transparent 25%,transparent 75%,var(--check2) 75%),linear-gradient(45deg,var(--check2) 25%,transparent 25%,transparent 75%,var(--check2) 75%);background-size:20px 20px;background-position:0 0,10px 10px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stage svg{display:block;width:100%;height:auto}
+.info{color:var(--sub);font-size:13px;margin-top:10px}
+.warn{color:#b3501c}
+.hide{display:none}
+.help{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+.help summary{cursor:pointer;font-weight:600;font-size:14px}
+.help ol{margin:8px 0 0;padding-left:1.4em;font-size:14px;color:var(--sub)}
+.help li{margin:4px 0}
+.foot{max-width:1180px;margin:0 auto;padding:0 20px 28px;color:var(--sub);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="panel">
+<h1>五角形フラクタル SVG書き出し</h1>
+
+<fieldset>
+<legend>図形</legend>
+<div class="row"><select id="pat" aria-label="図形の種類">
+<option value="penta">ペンタフレーク(6分割)</option>
+<option value="sier">五角形のシェルピンスキー(中央を抜く)</option>
+<option value="star">星(ペンタグラム)フレーク</option>
+<option value="flower">五角形の花</option>
+<option value="spiral">入れ子の螺旋</option>
+<option value="koch">五角形コッホ曲線</option>
+</select></div>
+<div class="row" id="rowLv"><label for="lv">反復レベル</label><input id="lv" type="range" min="0" max="5" step="1" value="3"><span class="val" id="lvv"></span></div>
+<div class="row hide" id="rowRt"><label for="rt">分割比</label><input id="rt" type="range" min="0.05" max="0.45" step="0.01" value="0.12"><span class="val" id="rtv"></span></div>
+</fieldset>
+
+<fieldset>
+<legend>画像サイズ(px)</legend>
+<div class="row"><select id="preset" aria-label="サイズのプリセット">
+<option value="1280x670">1280 × 670(noteの見出し画像)</option>
+<option value="1920x1080">1920 × 1080</option>
+<option value="1080x1080">1080 × 1080(正方形)</option>
+<option value="1200x630">1200 × 630</option>
+<option value="custom">自分で指定</option>
+</select></div>
+<div class="size"><input type="number" id="w" value="1280" min="50" max="8000" aria-label="幅"><span>×</span><input type="number" id="h" value="670" min="50" max="8000" aria-label="高さ"></div>
+<div class="row"><label for="mg">余白</label><input id="mg" type="range" min="0" max="20" step="1" value="6"><span class="val" id="mgv"></span></div>
+</fieldset>
+
+<fieldset>
+<legend>色</legend>
+<div class="row"><label class="chk"><input type="radio" name="sch" value="multi" checked>枝ごとに色分け</label></div>
+<div class="row"><label class="chk"><input type="radio" name="sch" value="single">単色</label><input type="color" id="sc" value="#378add" aria-label="単色の色"></div>
+<div class="row"><label for="bg">背景</label><input type="color" id="bg" value="#0e1b38"><label class="chk"><input type="checkbox" id="tr">透明</label></div>
+<div class="row"><label for="sw">線の太さ</label><input type="number" id="sw" value="0.5" min="0" max="10" step="0.1"><span class="val">px</span></div>
+</fieldset>
+
+<button class="primary" id="savepng">PNGを保存</button>
+<button class="primary" id="save">SVGを保存</button>
+<div class="row" style="margin-top:8px"><button id="copy" style="width:100%">SVGコードをコピー</button></div>
+<div class="info" id="info"></div>
+</div>
+
+<div>
+<div class="stage" id="prev" role="img" aria-label="プレビュー"></div>
+<details class="help" open>
+<summary>使い方</summary>
+<ol>
+<li>図形の種類と反復レベルを選びます。レベルを上げるほど細かくなりますが、上げすぎると重くなります。</li>
+<li>画像サイズを指定します。初期値の 1280×670 は、noteの見出し画像のサイズです。</li>
+<li>色・背景・線の太さを調整して、「PNGを保存」か「SVGを保存」を押します。PNGは、そのまま画像として使えます。</li>
+<li>SVGは、Inkscapeなどで開いて編集できます(PNGへの書き出しは、Inkscapeでは、ファイル → コピーをエクスポート)。</li>
+</ol>
+</details>
+</div>
+</div>
+
+<footer class="foot">このツールは、AI(Claude / Anthropic)と一緒に作りました。自由に使えます。改変・再配布・商用利用も、連絡や表記は不要です。ただし無保証で、使用の結果について責任は負えません。</footer>
+
+<script>
+(function(){
+var TAU=2*Math.PI, ROT=-Math.PI/2;
+var RATIO=1/(1+(1+Math.sqrt(5))/2);
+var CFG={
+penta:{max:5,def:3,key:'pentaflake'},
+sier:{max:6,def:4,key:'sierpinski'},
+star:{max:4,def:3,key:'starflake'},
+flower:{max:5,def:3,key:'flower'},
+spiral:{max:0,def:0,key:'spiral'},
+koch:{max:4,def:3,key:'koch'}
+};
+var $=function(id){return document.getElementById(id);};
+
+function hsl2hex(h,s,l){
+h=((h%360)+360)%360;s/=100;l/=100;
+var a=s*Math.min(l,1-l);
+function f(n){var k=(n+h/30)%12;var c=l-a*Math.max(-1,Math.min(k-3,9-k,1));return Math.round(255*c).toString(16).padStart(2,'0');}
+return '#'+f(0)+f(8)+f(4);
+}
+function shade(hex,f){
+var v=[1,3,5].map(function(i){return Math.max(0,Math.min(255,Math.round(parseInt(hex.substr(i,2),16)*f)));});
+return '#'+v.map(function(x){return x.toString(16).padStart(2,'0');}).join('');
+}
+
+var single=false,singleHex='#378add';
+function fillOf(h,l){return single?shade(singleHex,(l||55)/55):hsl2hex(h,65,l||55);}
+function strokeOf(h,l){return single?shade(singleHex,(l||30)/55):hsl2hex(h,65,l||30);}
+
+function pentPts(cx,cy,R,rot){var a=[];for(var k=0;k<5;k++){var t=rot+k*TAU/5;a.push([cx+R*Math.cos(t),cy+R*Math.sin(t)]);}return a;}
+function starPts(cx,cy,R,rot){var o=[0,2,4,1,3,0],a=[];for(var i=0;i<o.length;i++){var t=rot+o[i]*TAU/5;a.push([cx+R*Math.cos(t),cy+R*Math.sin(t)]);}return a;}
+function poly(pts,h,o){o=o||{};return{t:'poly',pts:pts,fill:fillOf(h,o.l),stroke:o.ns?null:strokeOf(h,o.sl),fo:o.fo==null?1:o.fo,sw:o.sw||1};}
+function line(pts,h){return{t:'line',pts:pts,stroke:single?shade(singleHex,1):hsl2hex(h,70,58)};}
+
+function gFlake(L,center){
+var items=[],r=RATIO;
+function rec(cx,cy,R,rot,d,h){
+if(d<=0){items.push(poly(pentPts(cx,cy,R,rot),h));return;}
+var dist=R*(1-r);
+for(var k=0;k<5;k++){var t=rot+k*TAU/5;rec(cx+dist*Math.cos(t),cy+dist*Math.sin(t),R*r,rot,d-1,h);}
+if(center)rec(cx,cy,R*r,rot+Math.PI,d-1,h);
+}
+if(L==0){rec(0,0,1,ROT,0,210);return items;}
+var dist=1-r;
+for(var k=0;k<5;k++){var t=ROT+k*TAU/5;rec(dist*Math.cos(t),dist*Math.sin(t),r,ROT,L-1,k*60+10);}
+if(center)rec(0,0,r,ROT+Math.PI,L-1,300);
+return items;
+}
+function gStar(L){
+var items=[],r=RATIO;
+function leaf(cx,cy,R,rot,h){items.push(poly(pentPts(cx,cy,R,rot),h,{fo:0.5,ns:true}));items.push(line(starPts(cx,cy,R,rot),h));}
+function rec(cx,cy,R,rot,d,h){
+if(d<=0){leaf(cx,cy,R,rot,h);return;}
+var dist=R*(1-r);
+for(var k=0;k<5;k++){var t=rot+k*TAU/5;rec(cx+dist*Math.cos(t),cy+dist*Math.sin(t),R*r,rot,d-1,h);}
+rec(cx,cy,R*r,rot+Math.PI,d-1,h);
+}
+if(L==0){leaf(0,0,1,ROT,210);return items;}
+var dist=1-r;
+for(var k=0;k<5;k++){var t=ROT+k*TAU/5;rec(dist*Math.cos(t),dist*Math.sin(t),r,ROT,L-1,k*60+10);}
+rec(0,0,r,ROT+Math.PI,L-1,300);
+return items;
+}
+function gFlower(L){
+var items=[];
+function rec(cx,cy,R,rot,d){
+var h=(d*50+200)%360;
+items.push(poly(pentPts(cx,cy,R,rot),h,{fo:0.22,sw:2,sl:58}));
+if(d<=0)return;
+var P=pentPts(cx,cy,R,rot);
+for(var k=0;k<5;k++)rec(P[k][0],P[k][1],R*0.4,rot+Math.PI/5,d-1);
+}
+rec(0,0,1,ROT,L);
+return items;
+}
+function gSpiral(t){
+var items=[],P=pentPts(0,0,1,ROT);
+for(var i=0;i<80;i++){
+items.push(poly(P.map(function(p){return[p[0],p[1]];}),(210+i*6)%360,{l:i%2?58:48}));
+var Q=[];
+for(var k=0;k<5;k++){var A=P[k],B=P[(k+1)%5];Q.push([A[0]+t*(B[0]-A[0]),A[1]+t*(B[1]-A[1])]);}
+P=Q;
+var dx=P[0][0]-P[1][0],dy=P[0][1]-P[1][1];
+if(Math.sqrt(dx*dx+dy*dy)<0.004)break;
+}
+return items;
+}
+function gKoch(L){
+var pts=pentPts(0,0,1,ROT);
+var mx=(pts[0][0]+pts[1][0])/2,my=(pts[0][1]+pts[1][1])/2;
+var dx0=pts[1][0]-pts[0][0],dy0=pts[1][1]-pts[0][1];
+var c=Math.cos(108*Math.PI/180),s=Math.sin(108*Math.PI/180);
+var sg=((dx0*c-dy0*s)*mx+(dx0*s+dy0*c)*my)>0?1:-1;
+var ang=[108,36,-36,-108].map(function(d){return d*sg*Math.PI/180;});
+for(var l=0;l<L;l++){
+var N=[];
+for(var i=0;i<pts.length;i++){
+var A=pts[i],B=pts[(i+1)%pts.length];
+var dx=(B[0]-A[0])/3,dy=(B[1]-A[1])/3;
+var cur=[A[0]+dx,A[1]+dy];
+N.push(A);N.push(cur);
+for(var j=0;j<4;j++){
+var ca=Math.cos(ang[j]),sa=Math.sin(ang[j]);
+cur=[cur[0]+dx*ca-dy*sa,cur[1]+dx*sa+dy*ca];
+if(j<3)N.push(cur);
+}
+}
+pts=N;
+}
+return[poly(pts,210,{fo:0.55,l:55,sw:1.6})];
+}
+
+function generate(){
+var p=$('pat').value,L=+$('lv').value;
+if(p=='penta')return gFlake(L,true);
+if(p=='sier')return gFlake(L,false);
+if(p=='star')return gStar(L);
+if(p=='flower')return gFlower(L);
+if(p=='spiral')return gSpiral(+$('rt').value);
+return gKoch(L);
+}
+
+function f2(x){return x.toFixed(2);}
+function buildSVG(items,W,H){
+var minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9,i,j;
+for(i=0;i<items.length;i++){var P=items[i].pts;for(j=0;j<P.length;j++){var x=P[j][0],y=P[j][1];if(x<minx)minx=x;if(x>maxx)maxx=x;if(y<miny)miny=y;if(y>maxy)maxy=y;}}
+var m=+$('mg').value/100;
+var bw=maxx-minx,bh=maxy-miny;
+var s=Math.min(W*(1-2*m)/bw,H*(1-2*m)/bh);
+var ox=(W-bw*s)/2-minx*s,oy=(H-bh*s)/2-miny*s;
+var sw=Math.max(0,+$('sw').value||0);
+var out=['<?xml version="1.0" encoding="UTF-8"?>','<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'];
+if(!$('tr').checked)out.push('<rect width="'+W+'" height="'+H+'" fill="'+$('bg').value+'"/>');
+out.push('<g stroke-linejoin="round">');
+for(i=0;i<items.length;i++){
+var it=items[i],a=[];
+for(j=0;j<it.pts.length;j++)a.push(f2(ox+it.pts[j][0]*s)+','+f2(oy+it.pts[j][1]*s));
+var pts=a.join(' ');
+if(it.t=='poly'){
+var e='<polygon points="'+pts+'" fill="'+it.fill+'"';
+if(it.fo<1)e+=' fill-opacity="'+it.fo+'"';
+if(it.stroke&&sw>0)e+=' stroke="'+it.stroke+'" stroke-width="'+(sw*it.sw).toFixed(2)+'"';
+out.push(e+'/>');
+}else if(sw>0){
+out.push('<polyline points="'+pts+'" fill="none" stroke="'+it.stroke+'" stroke-width="'+(sw*1.6).toFixed(2)+'"/>');
+}
+}
+out.push('</g>','</svg>');
+return out.join('\n');
+}
+
+var current='',curName='';
+function readSize(){
+var W=Math.round(+$('w').value),H=Math.round(+$('h').value);
+if(!(W>=50&&W<=8000)||!(H>=50&&H<=8000))return null;
+return[W,H];
+}
+function render(){
+var p=$('pat').value,cfg=CFG[p];
+single=document.querySelector('input[name=sch]:checked').value=='single';
+singleHex=$('sc').value;
+$('rowLv').classList.toggle('hide',p=='spiral');
+$('rowRt').classList.toggle('hide',p!='spiral');
+var lv=$('lv');
+if(p!='spiral'){lv.max=cfg.max;if(+lv.value>cfg.max)lv.value=cfg.max;}
+$('lvv').textContent='レベル '+lv.value;
+$('rtv').textContent=(+$('rt').value).toFixed(2);
+$('mgv').textContent=$('mg').value+'%';
+var size=readSize();
+if(!size){$('info').innerHTML='<span class="warn">幅と高さは 50〜8000 の整数で指定してください。</span>';return;}
+var items=generate();
+current=buildSVG(items,size[0],size[1]);
+var L=p=='spiral'?'r'+Math.round(+$('rt').value*100):'L'+lv.value;
+curName='pentagon_'+cfg.key+'_'+L+'_'+size[0]+'x'+size[1]+'.svg';
+$('prev').innerHTML=current.replace(/^<\?xml[^>]*\?>\s*/,'');
+var kb=Math.round(current.length/1024);
+$('info').innerHTML='図形 '+items.length+' 個・約 '+kb+' KB'+(kb>3000?'<br><span class="warn">ファイルが大きいため、Inkscapeで開くのに時間がかかる場合があります。</span>':'');
+}
+function saveBlob(blob,name){
+var a=document.createElement('a');
+a.href=URL.createObjectURL(blob);a.download=name;
+document.body.appendChild(a);a.click();
+setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},200);
+}
+function download(){
+if(!current)return;
+saveBlob(new Blob([current],{type:'image/svg+xml'}),curName);
+}
+function downloadPng(){
+if(!current)return;
+var size=readSize();if(!size)return;
+var W=size[0],H=size[1],name=curName.replace(/\.svg$/,'.png');
+var url=URL.createObjectURL(new Blob([current],{type:'image/svg+xml;charset=utf-8'}));
+var img=new Image();
+function fail(){URL.revokeObjectURL(url);$('info').innerHTML='<span class="warn">PNGに変換できませんでした。サイズを小さくするか、SVGで保存してください。</span>';}
+img.onload=function(){
+try{
+var c=document.createElement('canvas');c.width=W;c.height=H;
+c.getContext('2d').drawImage(img,0,0,W,H);
+URL.revokeObjectURL(url);
+c.toBlob(function(b){if(!b){fail();return;}saveBlob(b,name);},'image/png');
+}catch(e){fail();}
+};
+img.onerror=fail;
+img.src=url;
+}
+function copy(){
+if(!current)return;
+var b=$('copy');
+function done(t){b.textContent=t;setTimeout(function(){b.textContent='SVGコードをコピー';},1600);}
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(current).then(function(){done('コピーしました');},function(){done('コピーできませんでした');});}
+else done('コピーできませんでした');
+}
+
+$('pat').addEventListener('change',function(){var c=CFG[this.value];if(this.value!='spiral')$('lv').value=c.def;render();});
+['lv','rt','mg','sw','sc','bg','tr','w','h'].forEach(function(id){$(id).addEventListener('input',render);});
+document.querySelectorAll('input[name=sch]').forEach(function(e){e.addEventListener('change',render);});
+$('preset').addEventListener('change',function(){
+if(this.value!='custom'){var a=this.value.split('x');$('w').value=a[0];$('h').value=a[1];}
+render();
+});
+['w','h'].forEach(function(id){$(id).addEventListener('input',function(){
+var v=$('w').value+'x'+$('h').value,sel=$('preset'),found=false;
+for(var i=0;i<sel.options.length;i++)if(sel.options[i].value==v)found=true;
+sel.value=found?v:'custom';
+});});
+$('save').addEventListener('click',download);
+$('savepng').addEventListener('click',downloadPng);
+$('copy').addEventListener('click',copy);
+render();
+})();
+</script>
+</body>
+</html>
