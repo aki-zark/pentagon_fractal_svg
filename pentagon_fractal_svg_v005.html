@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>五角形フラクタル 画像、作って保存。</title>
+<meta name="description" content="五角形のフラクタル図形を作って、PNG・SVGで保存できる無料ツール。画像サイズを指定でき、登録やインストールは不要です。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="五角形フラクタル 画像、作って保存。">
+<meta property="og:description" content="五角形のフラクタル図形を作って、PNG・SVGで保存できる無料ツール。画像サイズを指定でき、登録やインストールは不要です。">
+<meta property="og:url" content="https://aki-zark.github.io/pentagon_fractal_svg/">
+<meta property="og:image" content="https://aki-zark.github.io/pentagon_fractal_svg/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="五角形のフラクタル図形">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root{--bg:#eef1f6;--panel:#fff;--text:#1b2233;--sub:#58627a;--line:#d3d9e6;--accent:#2f4fd0;--accent-text:#fff;--check1:#fff;--check2:#e3e7ef}
+@media (prefers-color-scheme:dark){:root{--bg:#10141d;--panel:#1a2030;--text:#e6e9f2;--sub:#9aa5bd;--line:#2f384e;--accent:#7a97ff;--accent-text:#0e1424;--check1:#232a3b;--check2:#1b2130}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 "Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:20px;display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
+.colL,.colR{display:flex;flex-direction:column;gap:20px;min-width:0}
+@media(max-width:820px){.wrap{display:flex;flex-direction:column;align-items:stretch}.colL,.colR{display:contents}.head{order:1}.stage{order:2}.panel{order:3}.help{order:4}}
+h1{font-size:18px;margin:0 0 14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+fieldset{border:0;border-top:1px solid var(--line);margin:14px 0 0;padding:12px 0 0}
+fieldset:first-of-type{border-top:0;margin-top:0;padding-top:0}
+legend{font-weight:600;padding:0;margin-bottom:8px;font-size:14px}
+.row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.row label{flex:0 0 5.5em;color:var(--sub);font-size:14px}
+.row input[type=range]{flex:1;min-width:0}
+.row .val{flex:0 0 4.5em;text-align:right;font-variant-numeric:tabular-nums}
+select,input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);font:inherit}
+input[type=number]{width:6.5em}
+input[type=color]{width:42px;height:30px;padding:0;border:1px solid var(--line);border-radius:6px;background:none}
+.size{display:flex;align-items:center;gap:8px}
+.chk{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text)}
+button{font:inherit;cursor:pointer;border-radius:6px;padding:9px 14px;border:1px solid var(--line);background:var(--panel);color:var(--text)}
+button.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:600;width:100%;margin-top:6px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stage{background-color:var(--check1);background-image:linear-gradient(45deg,var(--check2) 25%,transparent 25%,transparent 75%,var(--check2) 75%),linear-gradient(45deg,var(--check2) 25%,transparent 25%,transparent 75%,var(--check2) 75%);background-size:20px 20px;background-position:0 0,10px 10px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stage svg{display:block;width:100%;height:auto}
+.info{color:var(--sub);font-size:13px;margin-top:10px}
+.warn{color:#b3501c}
+.hide{display:none}
+.row button{flex:1}
+@keyframes pfade{from{opacity:0}to{opacity:1}}
+.stage.fade svg{animation:pfade .35s ease}
+@media (prefers-reduced-motion:reduce){.stage.fade svg{animation:none}}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:14px}
+.top h1{margin:0}
+.lang{padding:4px 10px;font-size:13px;white-space:nowrap}
+.help{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+.help summary{cursor:pointer;font-weight:600;font-size:14px}
+.help ol{margin:8px 0 0;padding-left:1.4em;font-size:14px;color:var(--sub)}
+.help li{margin:4px 0}
+.foot{max-width:1180px;margin:0 auto;padding:0 20px 28px;color:var(--sub);font-size:13px}
+.head{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+.top.head{margin-bottom:0}
+.help{margin-top:0}
+@media(max-width:820px){
+.stage{position:sticky;top:0;z-index:10;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.stage svg{width:auto;height:auto;max-width:100%;max-height:38vh;margin:0 auto}
+}
+@media(min-width:821px){
+.colR{position:sticky;top:20px;max-height:calc(100vh - 40px);overflow-y:auto}
+.colR>*{flex-shrink:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="colL">
+<header class="top head"><h1 data-i18n="title">五角形フラクタル 画像、作って保存。</h1><button id="lang" class="lang" type="button" aria-label="Language">English</button></header>
+<div class="panel">
+
+<fieldset>
+<legend data-i18n="show">スライドショー</legend>
+<div class="row"><button id="showBtn" type="button" aria-pressed="false">停止</button><button id="nextBtn" type="button" data-i18n="next">次の図形</button></div>
+<div class="row"><label for="ivl" data-i18n="ivl">間隔</label><select id="ivl"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="15">15</option><option value="custom" data-i18n="p_custom">自分で指定</option></select></div>
+<div class="size"><input type="number" id="ivn" value="5" min="1" max="600" step="0.5" aria-label="間隔" data-i18n-aria="ivl"><span data-i18n="sec">秒</span></div>
+</fieldset>
+
+<fieldset>
+<legend data-i18n="fig">図形</legend>
+<div class="row"><select id="pat" aria-label="図形の種類" data-i18n-aria="patAria">
+<option value="penta" data-i18n="o_penta">ペンタフレーク(6分割)</option>
+<option value="sier" data-i18n="o_sier">五角形のシェルピンスキー(中央を抜く)</option>
+<option value="star" data-i18n="o_star">星(ペンタグラム)フレーク</option>
+<option value="flower" data-i18n="o_flower">五角形の花</option>
+<option value="spiral" data-i18n="o_spiral">入れ子の螺旋</option>
+<option value="koch" data-i18n="o_koch">五角形コッホ曲線</option>
+</select></div>
+<div class="row" id="rowLv"><label for="lv" data-i18n="lvLabel">反復レベル</label><input id="lv" type="range" min="0" max="5" step="1" value="3"><span class="val" id="lvv"></span></div>
+<div class="row hide" id="rowRt"><label for="rt" data-i18n="rtLabel">分割比</label><input id="rt" type="range" min="0.05" max="0.45" step="0.01" value="0.12"><span class="val" id="rtv"></span></div>
+</fieldset>
+
+<fieldset>
+<legend data-i18n="size">画像サイズ(px)</legend>
+<div class="row"><select id="preset" aria-label="サイズのプリセット" data-i18n-aria="presetAria">
+<option value="1280x670" data-i18n="p_note">1280 × 670(noteの見出し画像)</option>
+<option value="1920x1080">1920 × 1080</option>
+<option value="1080x1080" data-i18n="p_sq">1080 × 1080(正方形)</option>
+<option value="1200x630">1200 × 630</option>
+<option value="custom" data-i18n="p_custom">自分で指定</option>
+</select></div>
+<div class="size"><input type="number" id="w" value="1280" min="50" max="8000" aria-label="幅" data-i18n-aria="wAria"><span>×</span><input type="number" id="h" value="670" min="50" max="8000" aria-label="高さ" data-i18n-aria="hAria"></div>
+<div class="row"><label for="mg" data-i18n="margin">余白</label><input id="mg" type="range" min="0" max="20" step="1" value="6"><span class="val" id="mgv"></span></div>
+</fieldset>
+
+<fieldset>
+<legend data-i18n="color">色</legend>
+<div class="row"><label class="chk"><input type="radio" name="sch" value="multi" checked><span data-i18n="multi">枝ごとに色分け</span></label></div>
+<div class="row"><label class="chk"><input type="radio" name="sch" value="single"><span data-i18n="single">単色</span></label><input type="color" id="sc" value="#378add" aria-label="単色の色" data-i18n-aria="scAria"></div>
+<div class="row"><label for="bg" data-i18n="bg">背景</label><input type="color" id="bg" value="#0e1b38"><label class="chk"><input type="checkbox" id="tr"><span data-i18n="transp">透明</span></label></div>
+<div class="row"><label for="sw" data-i18n="sw">線の太さ</label><input type="number" id="sw" value="0.5" min="0" max="10" step="0.1"><span class="val">px</span></div>
+</fieldset>
+
+<button class="primary" id="savepng" data-i18n="savePng">PNGを保存</button>
+<button class="primary" id="save" data-i18n="saveSvg">SVGを保存</button>
+<div class="row" style="margin-top:8px"><button id="copy" style="width:100%" data-i18n="copy">SVGコードをコピー</button></div>
+<div class="row"><button id="share" style="width:100%" data-i18n="share">共有URLをコピー</button></div>
+<div class="row"><button id="reset" style="width:100%" data-i18n="reset">初期設定に戻す</button></div>
+<div class="info" id="info"></div>
+</div>
+
+</div>
+<div class="colR">
+<div class="stage" id="prev" role="img" aria-label="プレビュー" data-i18n-aria="prevAria"></div>
+<details class="help" open>
+<summary data-i18n="howto">使い方</summary>
+<ol>
+<li data-i18n="h1">図形の種類と反復レベルを選びます。レベルを上げるほど細かくなりますが、上げすぎると重くなります。</li>
+<li data-i18n="h2">画像サイズを指定します。初期値の 1280×670 は、noteの見出し画像のサイズです。</li>
+<li data-i18n="h3">色・背景・線の太さを調整して、「PNGを保存」か「SVGを保存」を押します。PNGは、そのまま画像として使えます。</li>
+<li data-i18n="h4">SVGは、Inkscapeなどで開いて編集できます(PNGへの書き出しは、Inkscapeでは、ファイル → コピーをエクスポート)。</li>
+<li data-i18n="h5">最初は、図形が自動で切り替わります。「停止」を押すと、その図形で作業に入れます。「次の図形」で、好きなだけ別の図形を探せます。切り替えの間隔は、一覧から選ぶか、秒数を直接入力できます(1〜600秒)。</li>
+<li data-i18n="h6">設定は、このブラウザに自動で覚えられ、次に開いたときも同じ設定で始まります。「共有URLをコピー」で、今の設定をそのまま開けるリンクを作れます。</li>
+</ol>
+</details>
+</div>
+</div>
+
+<footer class="foot" data-i18n="foot">このツールは、AI(Claude / Anthropic)と一緒に作りました。自由に使えます。改変・再配布・商用利用も、連絡や表記は不要です。ただし無保証で、使用の結果について責任は負えません。</footer>
+
+<script>
+(function(){
+var TAU=2*Math.PI, ROT=-Math.PI/2;
+var RATIO=1/(1+(1+Math.sqrt(5))/2);
+var CFG={
+penta:{max:5,def:3,key:'pentaflake'},
+sier:{max:6,def:4,key:'sierpinski'},
+star:{max:4,def:3,key:'starflake'},
+flower:{max:5,def:3,key:'flower'},
+spiral:{max:0,def:0,key:'spiral'},
+koch:{max:4,def:3,key:'koch'}
+};
+var $=function(id){return document.getElementById(id);};
+var LANG='ja';
+var DICT={
+ja:{
+title:'五角形フラクタル 画像、作って保存。',fig:'図形',patAria:'図形の種類',
+o_penta:'ペンタフレーク(6分割)',o_sier:'五角形のシェルピンスキー(中央を抜く)',o_star:'星(ペンタグラム)フレーク',o_flower:'五角形の花',o_spiral:'入れ子の螺旋',o_koch:'五角形コッホ曲線',
+lvLabel:'反復レベル',rtLabel:'分割比',level:'レベル',
+size:'画像サイズ(px)',presetAria:'サイズのプリセット',p_note:'1280 × 670(noteの見出し画像)',p_sq:'1080 × 1080(正方形)',p_custom:'自分で指定',wAria:'幅',hAria:'高さ',margin:'余白',
+color:'色',multi:'枝ごとに色分け',single:'単色',scAria:'単色の色',bg:'背景',transp:'透明',sw:'線の太さ',
+savePng:'PNGを保存',saveSvg:'SVGを保存',copy:'SVGコードをコピー',copied:'コピーしました',copyFail:'コピーできませんでした',
+prevAria:'プレビュー',howto:'使い方',
+h1:'図形の種類と反復レベルを選びます。レベルを上げるほど細かくなりますが、上げすぎると重くなります。',
+h2:'画像サイズを指定します。初期値の 1280×670 は、noteの見出し画像のサイズです。',
+h3:'色・背景・線の太さを調整して、「PNGを保存」か「SVGを保存」を押します。PNGは、そのまま画像として使えます。',
+h4:'SVGは、Inkscapeなどで開いて編集できます(PNGへの書き出しは、Inkscapeでは、ファイル → コピーをエクスポート)。',
+foot:'このツールは、AI(Claude / Anthropic)と一緒に作りました。自由に使えます。改変・再配布・商用利用も、連絡や表記は不要です。ただし無保証で、使用の結果について責任は負えません。',
+sizeErr:'幅と高さは 50〜8000 の整数で指定してください。',
+info:function(n,kb){return '図形 '+n+' 個・約 '+kb+' KB';},
+big:'ファイルが大きいため、Inkscapeで開くのに時間がかかる場合があります。',
+pngFail:'PNGに変換できませんでした。サイズを小さくするか、SVGで保存してください。',other:'English',
+show:'スライドショー',next:'次の図形',ivl:'間隔',sec:'秒',stop:'停止',resume:'再開',share:'共有URLをコピー',reset:'初期設定に戻す',
+h5:'最初は、図形が自動で切り替わります。「停止」を押すと、その図形で作業に入れます。「次の図形」で、好きなだけ別の図形を探せます。切り替えの間隔は、一覧から選ぶか、秒数を直接入力できます(1〜600秒)。',
+h6:'設定は、このブラウザに自動で覚えられ、次に開いたときも同じ設定で始まります。「共有URLをコピー」で、今の設定をそのまま開けるリンクを作れます。'
+},
+en:{
+title:'Pentagon Fractal: Make & Save as Image',fig:'Shape',patAria:'Shape type',
+o_penta:'Pentaflake (6 pieces)',o_sier:'Sierpinski pentagon (center removed)',o_star:'Star (pentagram) flake',o_flower:'Pentagon flower',o_spiral:'Nested spiral',o_koch:'Pentagon Koch curve',
+lvLabel:'Iteration level',rtLabel:'Split ratio',level:'Level',
+size:'Image size (px)',presetAria:'Size preset',p_note:'1280 × 670 (note header image)',p_sq:'1080 × 1080 (square)',p_custom:'Custom',wAria:'Width',hAria:'Height',margin:'Margin',
+color:'Color',multi:'Color by branch',single:'Single color',scAria:'Single color',bg:'Background',transp:'Transparent',sw:'Line width',
+savePng:'Save PNG',saveSvg:'Save SVG',copy:'Copy SVG code',copied:'Copied',copyFail:'Could not copy',
+prevAria:'Preview',howto:'How to use',
+h1:'Choose a shape and an iteration level. Higher levels add more detail, but get heavy if you go too high.',
+h2:'Set the image size. The default 1280×670 is the header image size used by note, a Japanese blogging site.',
+h3:'Adjust the colors, background and line width, then press "Save PNG" or "Save SVG". The PNG is ready to use as an image.',
+h4:'The SVG can be opened and edited in Inkscape or similar software. (To make a PNG in Inkscape: File → Export a copy.)',
+foot:'Made together with AI (Claude / Anthropic). Free to use. You may modify, redistribute and use it commercially, with no need to contact or credit anyone. Provided as is, without warranty; no responsibility is taken for the results of using it.',
+sizeErr:'Width and height must be whole numbers from 50 to 8000.',
+info:function(n,kb){return n+' shapes · about '+kb+' KB';},
+big:'The file is large, so it may take a while to open in Inkscape.',
+pngFail:'Could not convert to PNG. Try a smaller size, or save as SVG.',other:'日本語',
+show:'Slideshow',next:'Next shape',ivl:'Interval',sec:'s',stop:'Pause',resume:'Resume',share:'Copy share link',reset:'Reset to defaults',
+h5:'At first, shapes switch automatically. Press "Pause" to stop on a shape and start working. "Next shape" lets you browse as many as you like. The interval can be picked from the list or typed in seconds (1–600).',
+h6:'Your settings are remembered in this browser and restored next time. "Copy share link" makes a link that opens with the current settings.'
+}
+};
+function t(k){return DICT[LANG][k];}
+function detectLang(){
+try{var q=new URLSearchParams(location.search).get('lang');if(q=='ja'||q=='en')return q;}catch(e){}
+try{var v=localStorage.getItem('pfLang');if(v=='ja'||v=='en')return v;}catch(e){}
+return /^ja/i.test(navigator.language||'')?'ja':'en';
+}
+
+
+function hsl2hex(h,s,l){
+h=((h%360)+360)%360;s/=100;l/=100;
+var a=s*Math.min(l,1-l);
+function f(n){var k=(n+h/30)%12;var c=l-a*Math.max(-1,Math.min(k-3,9-k,1));return Math.round(255*c).toString(16).padStart(2,'0');}
+return '#'+f(0)+f(8)+f(4);
+}
+function shade(hex,f){
+var v=[1,3,5].map(function(i){return Math.max(0,Math.min(255,Math.round(parseInt(hex.substr(i,2),16)*f)));});
+return '#'+v.map(function(x){return x.toString(16).padStart(2,'0');}).join('');
+}
+
+var single=false,singleHex='#378add';
+function fillOf(h,l){return single?shade(singleHex,(l||55)/55):hsl2hex(h,65,l||55);}
+function strokeOf(h,l){return single?shade(singleHex,(l||30)/55):hsl2hex(h,65,l||30);}
+
+function pentPts(cx,cy,R,rot){var a=[];for(var k=0;k<5;k++){var t=rot+k*TAU/5;a.push([cx+R*Math.cos(t),cy+R*Math.sin(t)]);}return a;}
+function starPts(cx,cy,R,rot){var o=[0,2,4,1,3,0],a=[];for(var i=0;i<o.length;i++){var t=rot+o[i]*TAU/5;a.push([cx+R*Math.cos(t),cy+R*Math.sin(t)]);}return a;}
+function poly(pts,h,o){o=o||{};return{t:'poly',pts:pts,fill:fillOf(h,o.l),stroke:o.ns?null:strokeOf(h,o.sl),fo:o.fo==null?1:o.fo,sw:o.sw||1};}
+function line(pts,h){return{t:'line',pts:pts,stroke:single?shade(singleHex,1):hsl2hex(h,70,58)};}
+
+function gFlake(L,center){
+var items=[],r=RATIO;
+function rec(cx,cy,R,rot,d,h){
+if(d<=0){items.push(poly(pentPts(cx,cy,R,rot),h));return;}
+var dist=R*(1-r);
+for(var k=0;k<5;k++){var t=rot+k*TAU/5;rec(cx+dist*Math.cos(t),cy+dist*Math.sin(t),R*r,rot,d-1,h);}
+if(center)rec(cx,cy,R*r,rot+Math.PI,d-1,h);
+}
+if(L==0){rec(0,0,1,ROT,0,210);return items;}
+var dist=1-r;
+for(var k=0;k<5;k++){var t=ROT+k*TAU/5;rec(dist*Math.cos(t),dist*Math.sin(t),r,ROT,L-1,k*60+10);}
+if(center)rec(0,0,r,ROT+Math.PI,L-1,300);
+return items;
+}
+function gStar(L){
+var items=[],r=RATIO;
+function leaf(cx,cy,R,rot,h){items.push(poly(pentPts(cx,cy,R,rot),h,{fo:0.5,ns:true}));items.push(line(starPts(cx,cy,R,rot),h));}
+function rec(cx,cy,R,rot,d,h){
+if(d<=0){leaf(cx,cy,R,rot,h);return;}
+var dist=R*(1-r);
+for(var k=0;k<5;k++){var t=rot+k*TAU/5;rec(cx+dist*Math.cos(t),cy+dist*Math.sin(t),R*r,rot,d-1,h);}
+rec(cx,cy,R*r,rot+Math.PI,d-1,h);
+}
+if(L==0){leaf(0,0,1,ROT,210);return items;}
+var dist=1-r;
+for(var k=0;k<5;k++){var t=ROT+k*TAU/5;rec(dist*Math.cos(t),dist*Math.sin(t),r,ROT,L-1,k*60+10);}
+rec(0,0,r,ROT+Math.PI,L-1,300);
+return items;
+}
+function gFlower(L){
+var items=[];
+function rec(cx,cy,R,rot,d){
+var h=(d*50+200)%360;
+items.push(poly(pentPts(cx,cy,R,rot),h,{fo:0.22,sw:2,sl:58}));
+if(d<=0)return;
+var P=pentPts(cx,cy,R,rot);
+for(var k=0;k<5;k++)rec(P[k][0],P[k][1],R*0.4,rot+Math.PI/5,d-1);
+}
+rec(0,0,1,ROT,L);
+return items;
+}
+function gSpiral(t){
+var items=[],P=pentPts(0,0,1,ROT);
+for(var i=0;i<80;i++){
+items.push(poly(P.map(function(p){return[p[0],p[1]];}),(210+i*6)%360,{l:i%2?58:48}));
+var Q=[];
+for(var k=0;k<5;k++){var A=P[k],B=P[(k+1)%5];Q.push([A[0]+t*(B[0]-A[0]),A[1]+t*(B[1]-A[1])]);}
+P=Q;
+var dx=P[0][0]-P[1][0],dy=P[0][1]-P[1][1];
+if(Math.sqrt(dx*dx+dy*dy)<0.004)break;
+}
+return items;
+}
+function gKoch(L){
+var pts=pentPts(0,0,1,ROT);
+var mx=(pts[0][0]+pts[1][0])/2,my=(pts[0][1]+pts[1][1])/2;
+var dx0=pts[1][0]-pts[0][0],dy0=pts[1][1]-pts[0][1];
+var c=Math.cos(108*Math.PI/180),s=Math.sin(108*Math.PI/180);
+var sg=((dx0*c-dy0*s)*mx+(dx0*s+dy0*c)*my)>0?1:-1;
+var ang=[108,36,-36,-108].map(function(d){return d*sg*Math.PI/180;});
+for(var l=0;l<L;l++){
+var N=[];
+for(var i=0;i<pts.length;i++){
+var A=pts[i],B=pts[(i+1)%pts.length];
+var dx=(B[0]-A[0])/3,dy=(B[1]-A[1])/3;
+var cur=[A[0]+dx,A[1]+dy];
+N.push(A);N.push(cur);
+for(var j=0;j<4;j++){
+var ca=Math.cos(ang[j]),sa=Math.sin(ang[j]);
+cur=[cur[0]+dx*ca-dy*sa,cur[1]+dx*sa+dy*ca];
+if(j<3)N.push(cur);
+}
+}
+pts=N;
+}
+return[poly(pts,210,{fo:0.55,l:55,sw:1.6})];
+}
+
+function generate(){
+var p=$('pat').value,L=+$('lv').value;
+if(p=='penta')return gFlake(L,true);
+if(p=='sier')return gFlake(L,false);
+if(p=='star')return gStar(L);
+if(p=='flower')return gFlower(L);
+if(p=='spiral')return gSpiral(+$('rt').value);
+return gKoch(L);
+}
+
+function f2(x){return x.toFixed(2);}
+function buildSVG(items,W,H){
+var minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9,i,j;
+for(i=0;i<items.length;i++){var P=items[i].pts;for(j=0;j<P.length;j++){var x=P[j][0],y=P[j][1];if(x<minx)minx=x;if(x>maxx)maxx=x;if(y<miny)miny=y;if(y>maxy)maxy=y;}}
+var m=+$('mg').value/100;
+var bw=maxx-minx,bh=maxy-miny;
+var s=Math.min(W*(1-2*m)/bw,H*(1-2*m)/bh);
+var ox=(W-bw*s)/2-minx*s,oy=(H-bh*s)/2-miny*s;
+var sw=Math.max(0,+$('sw').value||0);
+var out=['<?xml version="1.0" encoding="UTF-8"?>','<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'];
+if(!$('tr').checked)out.push('<rect width="'+W+'" height="'+H+'" fill="'+$('bg').value+'"/>');
+out.push('<g stroke-linejoin="round">');
+for(i=0;i<items.length;i++){
+var it=items[i],a=[];
+for(j=0;j<it.pts.length;j++)a.push(f2(ox+it.pts[j][0]*s)+','+f2(oy+it.pts[j][1]*s));
+var pts=a.join(' ');
+if(it.t=='poly'){
+var e='<polygon points="'+pts+'" fill="'+it.fill+'"';
+if(it.fo<1)e+=' fill-opacity="'+it.fo+'"';
+if(it.stroke&&sw>0)e+=' stroke="'+it.stroke+'" stroke-width="'+(sw*it.sw).toFixed(2)+'"';
+out.push(e+'/>');
+}else if(sw>0){
+out.push('<polyline points="'+pts+'" fill="none" stroke="'+it.stroke+'" stroke-width="'+(sw*1.6).toFixed(2)+'"/>');
+}
+}
+out.push('</g>','</svg>');
+return out.join('\n');
+}
+
+var current='',curName='';
+function readSize(){
+var W=Math.round(+$('w').value),H=Math.round(+$('h').value);
+if(!(W>=50&&W<=8000)||!(H>=50&&H<=8000))return null;
+return[W,H];
+}
+function render(){
+var p=$('pat').value,cfg=CFG[p];
+single=document.querySelector('input[name=sch]:checked').value=='single';
+singleHex=$('sc').value;
+$('rowLv').classList.toggle('hide',p=='spiral');
+$('rowRt').classList.toggle('hide',p!='spiral');
+var lv=$('lv');
+if(p!='spiral'){lv.max=cfg.max;if(+lv.value>cfg.max)lv.value=cfg.max;}
+$('lvv').textContent=t('level')+' '+lv.value;
+$('rtv').textContent=(+$('rt').value).toFixed(2);
+$('mgv').textContent=$('mg').value+'%';
+var size=readSize();
+if(!size){$('info').innerHTML='<span class="warn">'+t('sizeErr')+'</span>';return;}
+var items=generate();
+current=buildSVG(items,size[0],size[1]);
+var L=p=='spiral'?'r'+Math.round(+$('rt').value*100):'L'+lv.value;
+curName='pentagon_'+cfg.key+'_'+L+'_'+size[0]+'x'+size[1]+'.svg';
+$('prev').innerHTML=current.replace(/^<\?xml[^>]*\?>\s*/,'');
+var kb=Math.round(current.length/1024);
+$('info').innerHTML=t('info')(items.length,kb)+(kb>3000?'<br><span class="warn">'+t('big')+'</span>':'');
+}
+function saveBlob(blob,name){
+var a=document.createElement('a');
+a.href=URL.createObjectURL(blob);a.download=name;
+document.body.appendChild(a);a.click();
+setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},200);
+}
+function download(){
+if(!current)return;
+saveBlob(new Blob([current],{type:'image/svg+xml'}),curName);
+}
+function downloadPng(){
+if(!current)return;
+var size=readSize();if(!size)return;
+var W=size[0],H=size[1],name=curName.replace(/\.svg$/,'.png');
+var url=URL.createObjectURL(new Blob([current],{type:'image/svg+xml;charset=utf-8'}));
+var img=new Image();
+function fail(){URL.revokeObjectURL(url);$('info').innerHTML='<span class="warn">'+t('pngFail')+'</span>';}
+img.onload=function(){
+try{
+var c=document.createElement('canvas');c.width=W;c.height=H;
+c.getContext('2d').drawImage(img,0,0,W,H);
+URL.revokeObjectURL(url);
+c.toBlob(function(b){if(!b){fail();return;}saveBlob(b,name);},'image/png');
+}catch(e){fail();}
+};
+img.onerror=fail;
+img.src=url;
+}
+function copy(){
+if(!current)return;
+var b=$('copy');
+function done(m){b.textContent=m;setTimeout(function(){b.textContent=t('copy');},1600);}
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(current).then(function(){done(t('copied'));},function(){done(t('copyFail'));});}
+else done(t('copyFail'));
+}
+
+$('pat').addEventListener('change',function(){var c=CFG[this.value];if(this.value!='spiral')$('lv').value=c.def;user();});
+['lv','rt','mg','sw','sc','bg','tr','w','h'].forEach(function(id){$(id).addEventListener('input',user);});
+document.querySelectorAll('input[name=sch]').forEach(function(e){e.addEventListener('change',user);});
+$('preset').addEventListener('change',function(){
+if(this.value!='custom'){var a=this.value.split('x');$('w').value=a[0];$('h').value=a[1];}
+user();
+});
+['w','h'].forEach(function(id){$(id).addEventListener('input',syncPreset);});
+$('save').addEventListener('click',download);
+$('savepng').addEventListener('click',downloadPng);
+$('copy').addEventListener('click',copy);
+
+var DEF={p:'penta',l:3,r:0.12,w:1280,h:670,m:6,s:'m',c:'378add',b:'0e1b38',t:0,k:0.5};
+var running=false,timer=null,lastIv=5;
+function syncPreset(){
+var v=$('w').value+'x'+$('h').value,sel=$('preset'),f=false;
+for(var i=0;i<sel.options.length;i++)if(sel.options[i].value==v)f=true;
+sel.value=f?v:'custom';
+}
+function clampInt(v,a,b){v=Math.round(+v);return isFinite(v)?Math.min(b,Math.max(a,v)):null;}
+function sanitize(o){
+if(!o||typeof o!='object')return null;
+var r={},n=0,x;
+if(o.p&&CFG[o.p]){r.p=o.p;n++;}
+var p=r.p||DEF.p;
+if(p!='spiral'&&o.l!=null&&o.l!==''){x=clampInt(o.l,0,CFG[p].max);if(x!==null){r.l=x;n++;}}
+if(o.r!=null&&o.r!==''){x=+o.r;if(isFinite(x)){r.r=Math.round(Math.min(0.45,Math.max(0.05,x))*100)/100;n++;}}
+if(o.w!=null&&o.w!==''){x=clampInt(o.w,50,8000);if(x!==null){r.w=x;n++;}}
+if(o.h!=null&&o.h!==''){x=clampInt(o.h,50,8000);if(x!==null){r.h=x;n++;}}
+if(o.m!=null&&o.m!==''){x=clampInt(o.m,0,20);if(x!==null){r.m=x;n++;}}
+if(o.s=='m'||o.s=='s'){r.s=o.s;n++;}
+if(/^[0-9a-f]{6}$/i.test(o.c||'')){r.c=o.c.toLowerCase();n++;}
+if(/^[0-9a-f]{6}$/i.test(o.b||'')){r.b=o.b.toLowerCase();n++;}
+if(o.t!=null&&o.t!==''&&(o.t==0||o.t==1)){r.t=+o.t;n++;}
+if(o.k!=null&&o.k!==''){x=+o.k;if(isFinite(x)){r.k=Math.round(Math.min(10,Math.max(0,x))*10)/10;n++;}}
+return n?r:null;
+}
+function fromURL(){
+try{var q=new URLSearchParams(location.search),o={};
+['p','l','r','w','h','m','s','c','b','t','k'].forEach(function(k){if(q.has(k))o[k]=q.get(k);});
+return sanitize(o);}catch(e){return null;}
+}
+function fromStorage(){
+try{var v=localStorage.getItem('pfSettings');return v?sanitize(JSON.parse(v)):null;}catch(e){return null;}
+}
+function getState(){
+var size=readSize();
+return{p:$('pat').value,l:+$('lv').value,r:+$('rt').value,w:size?size[0]:DEF.w,h:size?size[1]:DEF.h,m:+$('mg').value,
+s:document.querySelector('input[name=sch]:checked').value=='single'?'s':'m',
+c:$('sc').value.slice(1),b:$('bg').value.slice(1),t:$('tr').checked?1:0,k:+$('sw').value||0};
+}
+function persist(){try{localStorage.setItem('pfSettings',JSON.stringify(getState()));}catch(e){}}
+function applyState(st){
+var o={},k;
+for(k in DEF)o[k]=DEF[k];
+for(k in st)o[k]=st[k];
+var p=o.p,cfg=CFG[p];
+if(st.l==null)o.l=cfg.def;
+$('pat').value=p;
+if(p!='spiral'){$('lv').max=cfg.max;$('lv').value=Math.min(o.l,cfg.max);}
+$('rt').value=o.r;
+$('w').value=o.w;$('h').value=o.h;syncPreset();
+$('mg').value=o.m;
+document.querySelector('input[name=sch][value='+(o.s=='s'?'single':'multi')+']').checked=true;
+$('sc').value='#'+o.c;$('bg').value='#'+o.b;$('tr').checked=!!+o.t;$('sw').value=o.k;
+render();
+}
+var RL={penta:[2,4],sier:[2,5],star:[2,3],flower:[2,4],koch:[1,3]};
+var BGS=['0e1b38','101014','1b1230','f6f3ec','ffffff'];
+function rnd(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function randomState(){
+var keys=Object.keys(CFG),p=keys[rnd(0,keys.length-1)],st={p:p};
+if(p=='spiral')st.r=Math.round((0.06+Math.random()*0.34)*100)/100;else st.l=rnd(RL[p][0],RL[p][1]);
+if(Math.random()<0.35){st.s='s';st.c=hsl2hex(rnd(0,359),65,55).slice(1);}else st.s='m';
+st.b=BGS[rnd(0,BGS.length-1)];
+return st;
+}
+function nextShape(){
+var cur=getState(),st=randomState(),i=0;
+while(st.p==cur.p&&i++<8)st=randomState();
+for(var k in st)cur[k]=st[k];
+applyState(cur);
+var el=$('prev');el.classList.remove('fade');void el.offsetWidth;el.classList.add('fade');
+setTimeout(function(){el.classList.remove('fade');},450);
+}
+function tick(){if(!document.hidden)nextShape();}
+function setTimer(){clearInterval(timer);timer=setInterval(tick,getInterval()*1000);}
+function updateShowUI(){
+$('showBtn').textContent=running?t('stop'):t('resume');
+$('showBtn').setAttribute('aria-pressed',running?'true':'false');
+var o=$('ivl').options;
+for(var i=0;i<o.length;i++)if(o[i].value!='custom')o[i].textContent=o[i].value+' '+t('sec');
+}
+function startShow(immediate){running=true;if(immediate)nextShape();setTimer();updateShowUI();}
+function stopShow(){
+if(!running)return;
+running=false;clearInterval(timer);timer=null;updateShowUI();persist();
+}
+function user(){stopShow();render();persist();}
+function shareURL(){
+var s=getState(),a=['p='+s.p];
+if(s.p=='spiral')a.push('r='+s.r.toFixed(2));else a.push('l='+s.l);
+a.push('w='+s.w,'h='+s.h,'m='+s.m,'s='+s.s);
+if(s.s=='s')a.push('c='+s.c);
+a.push('b='+s.b,'t='+s.t,'k='+s.k);
+return location.href.split('#')[0].split('?')[0]+'?'+a.join('&');
+}
+function shareCopy(){
+var b=$('share'),u=shareURL();
+function done(m){b.textContent=m;setTimeout(function(){b.textContent=t('share');},1600);}
+function fail(){done(t('copyFail'));$('info').textContent=u;}
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(function(){done(t('copied'));},fail);}else fail();
+}
+$('showBtn').addEventListener('click',function(){if(running)stopShow();else startShow(false);});
+$('nextBtn').addEventListener('click',function(){nextShape();if(running)setTimer();else persist();});
+function getInterval(){var v=parseFloat($('ivn').value);if(isFinite(v)&&v>=1&&v<=600)lastIv=v;return lastIv;}
+function syncIvl(){var v=parseFloat($('ivn').value),sel=$('ivl'),f='custom';for(var i=0;i<sel.options.length;i++){if(sel.options[i].value!='custom'&&parseFloat(sel.options[i].value)==v)f=sel.options[i].value;}sel.value=f;}
+$('ivl').addEventListener('change',function(){if(this.value!='custom'){$('ivn').value=this.value;lastIv=+this.value;}if(running)setTimer();});
+$('ivn').addEventListener('input',function(){syncIvl();if(running)setTimer();});
+$('ivn').addEventListener('change',function(){var v=parseFloat(this.value);if(!isFinite(v))v=lastIv;v=Math.min(600,Math.max(1,v));this.value=v;lastIv=v;syncIvl();if(running)setTimer();});
+$('share').addEventListener('click',shareCopy);
+$('reset').addEventListener('click',function(){stopShow();applyState({p:'penta'});persist();});
+function applyLang(){
+document.documentElement.lang=LANG;
+document.title=t('title');
+document.querySelectorAll('[data-i18n]').forEach(function(e){e.textContent=t(e.getAttribute('data-i18n'));});
+document.querySelectorAll('[data-i18n-aria]').forEach(function(e){e.setAttribute('aria-label',t(e.getAttribute('data-i18n-aria')));});
+$('lang').textContent=t('other');
+updateShowUI();
+render();
+}
+$('lang').addEventListener('click',function(){
+LANG=LANG=='ja'?'en':'ja';
+try{localStorage.setItem('pfLang',LANG);}catch(e){}
+applyLang();
+});
+LANG=detectLang();
+applyLang();
+var fromU=fromURL(),saved=fromStorage(),reduce=false;
+try{reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+if(fromU)applyState(fromU);
+else if(saved)applyState(saved);
+else if(!reduce)startShow(true);
+updateShowUI();
+
+})();
+</script>
+</body>
+</html>
