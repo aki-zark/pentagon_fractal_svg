@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+<title>色の設定ツール(ColorPicker)の使い方</title>
+<style>
+:root{--bg:#eef1f6;--panel:#fff;--text:#1b2233;--sub:#58627a;--line:#d3d9e6;--accent:#2f4fd0;--accent-text:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#10141d;--panel:#1a2030;--text:#e6e9f2;--sub:#9aa5bd;--line:#2f384e;--accent:#7a97ff;--accent-text:#0e1424}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 "Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+h1{font-size:18px;margin:0}
+h2{font-size:15px;margin:0 0 6px}
+p{margin:6px 0;color:var(--sub);font-size:14px}
+button{font:inherit;cursor:pointer;border-radius:6px;padding:7px 12px;border:1px solid var(--line);background:var(--panel);color:var(--text)}
+button.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0}
+.cbtn{width:34px;height:26px;padding:0;border:2px solid var(--line);border-radius:6px}
+.stage{position:relative;height:230px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stage svg{position:absolute;inset:0;width:100%;height:100%}
+details>summary{cursor:pointer;font-weight:600;font-size:14px}
+.log{list-style:none;margin:6px 0 0;padding:0;font-size:13px;font-variant-numeric:tabular-nums}
+.log li{display:flex;gap:8px;align-items:center;padding:3px 0;border-top:1px solid var(--line)}
+.log li:first-child{border-top:0}
+.tag{flex:0 0 auto;padding:1px 8px;border-radius:10px;font-size:12px;border:1px solid var(--line)}
+.tag.user{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+.dot{width:12px;height:12px;border-radius:50%;border:1px solid var(--line);flex:0 0 12px}
+pre{margin:8px 0 0;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow:auto;font:12.5px/1.55 ui-monospace,Menlo,Consolas,monospace;color:var(--text)}
+.foot{color:var(--sub);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="card top">
+<div><h1 data-i18n="title">色の設定ツール(ColorPicker)の使い方</h1><p data-i18n="lead"></p></div>
+<button id="lang" type="button" aria-label="Language">English</button>
+</header>
+
+<section class="card">
+<h2 data-i18n="hPreview">見本の図形</h2>
+<div class="stage" id="stage">
+<svg viewBox="0 0 400 230" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+<defs>
+<pattern id="stripes" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="16" fill="#000" opacity=".07"/></pattern>
+</defs>
+<rect width="400" height="230" fill="url(#stripes)"/>
+<g id="shapes" stroke-width="5" stroke-linejoin="round">
+<circle cx="90" cy="115" r="52"/>
+<rect x="165" y="63" width="104" height="104" rx="6"/>
+<polygon points="335,58 380,170 290,170"/>
+</g>
+</svg>
+</div>
+<p data-i18n="previewNote"></p>
+</section>
+
+<section class="card">
+<h2 data-i18n="h1">① ページに埋め込んで表示する(inline)</h2>
+<p data-i18n="d1"></p>
+<details open id="fillDetails"><summary data-i18n="fillSummary">図形の塗りの色</summary><div id="fillHost"></div></details>
+</section>
+
+<section class="card">
+<h2 data-i18n="h2">② ダイアログ(小窓)で表示する(dialog)</h2>
+<p data-i18n="d2"></p>
+<div class="row"><span data-i18n="nStroke">図形の線の色</span><button id="strokeBtn" type="button" class="cbtn" aria-label="線の色"></button><code id="strokeHex"></code></div>
+<div class="row"><span data-i18n="nBg">背景の色</span><button id="bgBtn" type="button" class="cbtn" aria-label="背景の色"></button><code id="bgHex"></code></div>
+</section>
+
+<section class="card">
+<h2 data-i18n="h3">③ 部品の外から、色が変わるとき</h2>
+<p data-i18n="d3"></p>
+<div class="row"><button id="randBtn" type="button" data-i18n="randBtn">ランダムな色にする</button><button id="autoBtn" type="button" aria-pressed="false"></button></div>
+</section>
+
+<section class="card">
+<h2 data-i18n="hLog">動作ログ</h2>
+<p data-i18n="dLog"></p>
+<ul class="log" id="log"></ul>
+</section>
+
+<section class="card">
+<h2 data-i18n="hCode">コードの読み方</h2>
+<p data-i18n="dCode"></p>
+<pre>// ① 部品を作る
+var picker = ColorPicker.create({
+  mode: 'inline',                      // 'dialog' にすると小窓になる
+  host: document.getElementById('場所'),
+  color: '#e04f39',
+  onChange: function (hex) {           // 人が操作したときだけ呼ばれる
+    state.fill = hex;  paint();
+  }
+});
+
+// ② 外から色を変える(onChange は呼ばれないので、画面の更新は、自分でする)
+picker.setColor('#378add');
+state.fill = '#378add';  paint();
+
+// ③ 今の色を読む
+var hex = picker.getColor();
+
+// ④ 言語を切り替える
+picker.setTexts({ hue: '色相', sat: '彩度', lum: '明るさ', palette: '色の見本',
+                  hex: '色コード', rgb: 'RGB', dec: '減らす', inc: '増やす', close: '閉じる' });
+picker.setTitle('図形の塗りの色');
+
+// ⑤ ダイアログのとき
+picker.open();  picker.close();  picker.isOpen();</pre>
+</section>
+
+<footer class="foot"><span data-i18n="foot"></span></footer>
+</div>
+
+<script>
+/* ==================================================================
+   ColorPicker 部品(色の設定ツール)※仮名           ―― 開始 ――
+   ほかのHTMLにも、この <script> ひとまとまり(開始〜終了)を、
+   そのままコピーすれば、使えます。外部ファイルは、使いません。
+
+   【できること】
+     ・色の見本を押して、選ぶ
+     ・色相・彩度・明るさを、スライダーで調整する(左右の「−」「+」で、1ずつ細かく動かせる。押し続けると連続)
+     ・色コード(#rrggbb、#rgb)を、直接入力する
+     ・RGBの値(0〜255)を、直接入力する
+     ・ページに埋め込んで表示する(inline) / ダイアログ(画面の端に出る小窓)として表示する(dialog)
+
+   【使い方】
+     var picker = ColorPicker.create({
+       mode: 'inline',                           // 'inline'(省略時) か 'dialog'
+       host: document.getElementById('場所'),   // inline のとき、この中に部品が作られる
+       color: '#378add',                         // 最初の色(#rrggbb)
+       palette: ['#e04f39', '#378add', ...],     // 色の見本(省略すると、標準の14色)
+       onChange: function (hex) { ... },         // 「人が操作して」色が変わったときに呼ばれる
+       onClose: function () { ... }              // dialog が閉じられたときに呼ばれる
+     });
+
+   【部品に対してできること】
+     picker.getColor()          今の色(#rrggbb)を返す
+     picker.setColor('#rrggbb') 色を、外から変える(onChange は呼ばれない)
+     picker.setTitle('文字')    部品の上(dialog では、小窓の上)に出す一行の文字を変える
+     picker.setTexts({...})     表示の文言を変える(言語の切り替え用)。
+                                キー: hue, sat, lum, palette, hex, rgb, dec, inc, close
+     picker.setPalette([...])   色の見本を、入れ替える
+     picker.setVisible(true)    表示する / false で隠す
+     picker.open() / close()    dialog を、開く / 閉じる(Escキーでも閉じる)
+     picker.isOpen()            表示されているか
+     picker.onChange(fn)        onChange を、あとから付け替える
+     picker.el                  部品のいちばん外側の要素
+
+   【見た目】
+     CSS変数 --line, --sub, --accent, --panel, --text があれば、それを使います。
+     なければ、標準の色を使います。
+   ================================================================== */
+(function (global) {
+'use strict';
+
+var DEFAULT_PALETTE = ['#e04f39','#f0a030','#e8c42a','#4caf50','#1d9e75','#378add','#5b4fd8','#b04fd0','#e0508f','#0e1b38','#1a1a1a','#8a8f98','#f6f3ec','#ffffff'];
+var HEX = /^#[0-9a-f]{6}$/;
+var seq = 0;
+
+var CSS = [
+'.cp-root{margin:10px 0 6px;padding:10px;border:1px solid var(--line,#d3d9e6);border-radius:8px;font:inherit}',
+'.cp-title{font-size:13px;color:var(--sub,#58627a);margin-bottom:8px}',
+'.cp-pal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:8px}',
+'.cp-pal button{font:inherit;cursor:pointer;height:26px;padding:0;border:1px solid var(--line,#d3d9e6);border-radius:5px}',
+'.cp-pal button.sel{outline:2px solid var(--accent,#2f4fd0);outline-offset:1px}',
+'.cp-s{margin:8px 0}',
+'.cp-sh{display:flex;justify-content:space-between;align-items:baseline;color:var(--sub,#58627a);font-size:14px}',
+'.cp-val{font-variant-numeric:tabular-nums;color:var(--text,inherit)}',
+'.cp-sc{display:flex;align-items:center;gap:6px;margin-top:2px}',
+'.cp-sc input[type=range]{flex:1;min-width:0}',
+'.cp-step{flex:0 0 32px;height:32px;padding:0;border:1px solid var(--line,#d3d9e6);border-radius:6px;background:var(--panel,#fff);color:var(--text,inherit);font:inherit;font-size:18px;line-height:1;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}',
+'.cp-grad{-webkit-appearance:none;appearance:none;height:12px;border-radius:6px;border:1px solid var(--line,#d3d9e6)}',
+'.cp-grad::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid #444}',
+'.cp-grad::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #444}',
+'.cp-h{background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}',
+'.cp-in{display:flex;align-items:center;gap:8px;margin:8px 0 0}',
+'.cp-in label{flex:0 0 auto;min-width:4.5em;color:var(--sub,#58627a);font-size:14px}',
+'.cp-in input{flex:1;min-width:0;width:0;padding:6px 8px;border:1px solid var(--line,#d3d9e6);border-radius:6px;background:var(--panel,#fff);color:var(--text,inherit);font:inherit}',
+'.cp-in input[type=number]{text-align:center}',
+'.cp-root button:focus-visible,.cp-root input:focus-visible,.cp-dlg button:focus-visible{outline:2px solid var(--accent,#2f4fd0);outline-offset:2px}',
+'.cp-dlg{position:fixed;z-index:60;left:0;right:0;bottom:0;max-height:50vh;overflow:auto;background:var(--panel,#fff);color:var(--text,#1b2233);border:1px solid var(--line,#d3d9e6);border-radius:12px 12px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.25);padding-bottom:env(safe-area-inset-bottom,0px)}',
+'.cp-dlg[hidden]{display:none}',
+'.cp-dlg-h{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:10px 10px 0}',
+'.cp-dlg-h .cp-title{margin:0;flex:1;padding-top:6px}',
+'.cp-close{flex:0 0 32px;height:32px;padding:0;border:1px solid var(--line,#d3d9e6);border-radius:6px;background:var(--panel,#fff);color:var(--text,inherit);font:inherit;font-size:20px;line-height:1;cursor:pointer}',
+'.cp-dlg .cp-root{margin:0;border:0;border-radius:0}',
+'@media(min-width:821px){.cp-dlg{left:auto;right:20px;bottom:20px;width:320px;max-height:calc(100vh - 40px);border-radius:12px}}'
+].join('\n');
+
+function injectCSS() {
+  if (document.getElementById('cp-style')) return;
+  var st = document.createElement('style');
+  st.id = 'cp-style';
+  st.textContent = CSS;
+  document.head.appendChild(st);
+}
+
+/* 色の変換 ------------------------------------------------------- */
+function hsl2hex(h, s, l) {
+  h = ((h % 360) + 360) % 360; s /= 100; l /= 100;
+  var a = s * Math.min(l, 1 - l);
+  function f(n) {
+    var k = (n + h / 30) % 12;
+    var c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(255 * c).toString(16).padStart(2, '0');
+  }
+  return '#' + f(0) + f(8) + f(4);
+}
+function hex2hsl(hex) {
+  var r = parseInt(hex.substr(1, 2), 16) / 255,
+      g = parseInt(hex.substr(3, 2), 16) / 255,
+      b = parseInt(hex.substr(5, 2), 16) / 255;
+  var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0, d = mx - mn;
+  if (d) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+    h *= 60; if (h < 0) h += 360;
+  }
+  return [Math.round(h) % 360, Math.round(s * 100), Math.round(l * 100)];
+}
+function rgb2hex(v) { return '#' + v.map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
+function hex2rgb(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+/* 入力された色コードを、#rrggbb にそろえる。short=true なら、3桁(#abc)も受け付ける */
+function parseHex(s, short) {
+  s = String(s || '').trim().toLowerCase();
+  if (s.charAt(0) === '#') s = s.slice(1);
+  if (short && /^[0-9a-f]{3}$/.test(s)) s = s.replace(/(.)/g, '$1$1');
+  return /^[0-9a-f]{6}$/.test(s) ? '#' + s : null;
+}
+
+function mk(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
+
+/* 部品を1つ作る --------------------------------------------------- */
+function create(opts) {
+  opts = opts || {};
+  injectCSS();
+  var uid = 'cp' + (++seq);
+  var mode = opts.mode === 'dialog' ? 'dialog' : 'inline';
+  var palette = (opts.palette || DEFAULT_PALETTE).slice();
+  var texts = { hue: 'Hue', sat: 'Saturation', lum: 'Lightness', palette: 'Color swatches', hex: 'Color code', rgb: 'RGB', dec: 'Decrease', inc: 'Increase', close: 'Close' };
+  var changeFn = typeof opts.onChange === 'function' ? opts.onChange : function () {};
+  var closeFn = typeof opts.onClose === 'function' ? opts.onClose : function () {};
+  var cur = [0, 0, 0];      // 今の色相・彩度・明るさ(丸めによるずれを防ぐため、これを正とする)
+  var hex = '#000000';
+  var lastFocus = null;
+
+  var root = mk('div', 'cp-root');
+  var title = mk('div', 'cp-title');
+  var palBox = mk('div', 'cp-pal');
+  palBox.setAttribute('role', 'group');
+  root.appendChild(palBox);
+
+  /* スライダー3本(左右に「−」「+」) */
+  var rows = {};
+  var holdT = null, holdI = null;
+  function stopHold() { clearTimeout(holdT); clearInterval(holdI); holdT = holdI = null; }
+  function nudge(k, d) {
+    var r = rows[k], n = r.hi - r.lo + 1, v = +r.inp.value + d;
+    if (k === 'h') v = ((v - r.lo) % n + n) % n + r.lo;      // 色相は、ぐるっと一周する
+    else v = Math.min(r.hi, Math.max(r.lo, v));
+    if (v === +r.inp.value) return;
+    r.inp.value = v;
+    r.inp.dispatchEvent(new Event('input', { bubbles: true })); // スライダー本体の処理を、そのまま使う
+  }
+  function bindStep(btn, k, d) {
+    btn.addEventListener('pointerdown', function (e) {
+      if (e.button > 0) return;
+      stopHold();
+      nudge(k, d);
+      holdT = setTimeout(function () { holdI = setInterval(function () { nudge(k, d); }, 60); }, 420);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (n) { btn.addEventListener(n, stopHold); });
+    btn.addEventListener('click', function (e) { if (e.detail === 0) nudge(k, d); }); // キーボード操作(Enter / Space)
+  }
+  [['h', 'hue', 0, 359], ['s', 'sat', 0, 100], ['l', 'lum', 0, 100]].forEach(function (d) {
+    var k = d[0], box = mk('div', 'cp-s'), head = mk('div', 'cp-sh'), lab = mk('label'), val = mk('span', 'cp-val');
+    var line = mk('div', 'cp-sc'), dec = mk('button', 'cp-step'), inc = mk('button', 'cp-step'), inp = mk('input', 'cp-grad cp-' + k);
+    inp.type = 'range'; inp.min = d[2]; inp.max = d[3]; inp.step = 1; inp.id = uid + '-' + k; lab.htmlFor = inp.id;
+    dec.type = 'button'; inc.type = 'button'; dec.textContent = '\u2212'; inc.textContent = '+';
+    head.appendChild(lab); head.appendChild(val);
+    line.appendChild(dec); line.appendChild(inp); line.appendChild(inc);
+    box.appendChild(head); box.appendChild(line); root.appendChild(box);
+    rows[k] = { lab: lab, inp: inp, val: val, dec: dec, inc: inc, key: d[1], lo: d[2], hi: d[3] };
+    inp.addEventListener('input', function () {
+      cur = [+rows.h.inp.value, +rows.s.inp.value, +rows.l.inp.value];
+      hex = hsl2hex(cur[0], cur[1], cur[2]);
+      refresh();
+      changeFn(hex);
+    });
+    bindStep(dec, k, -1);
+    bindStep(inc, k, 1);
+  });
+
+  /* 色コードの入力欄 */
+  var hexRow = mk('div', 'cp-in'), hexLab = mk('label'), hexInp = mk('input');
+  hexInp.type = 'text'; hexInp.id = uid + '-x'; hexInp.maxLength = 7; hexInp.spellcheck = false; hexInp.autocomplete = 'off';
+  hexInp.setAttribute('autocapitalize', 'off'); hexInp.setAttribute('autocorrect', 'off');
+  hexLab.htmlFor = hexInp.id;
+  hexRow.appendChild(hexLab); hexRow.appendChild(hexInp); root.appendChild(hexRow);
+  hexInp.addEventListener('input', function () {      // 6桁そろったら、すぐ反映
+    var v = parseHex(hexInp.value, false);
+    if (v) setFrom(v, 'hex');
+  });
+  hexInp.addEventListener('change', function () {     // 入力が終わったとき。3桁も受け付け、だめなら元に戻す
+    var v = parseHex(hexInp.value, true);
+    if (v && v !== hex) setFrom(v, null);
+    hexInp.value = hex;
+  });
+
+  /* RGBの入力欄(0〜255) */
+  var rgbRow = mk('div', 'cp-in'), rgbLab = mk('label'), rgbInp = [];
+  rgbRow.appendChild(rgbLab);
+  ['R', 'G', 'B'].forEach(function (n, i) {
+    var inp = mk('input');
+    inp.type = 'number'; inp.min = 0; inp.max = 255; inp.step = 1; inp.id = uid + '-' + n.toLowerCase();
+    inp.setAttribute('inputmode', 'numeric'); inp.setAttribute('aria-label', n);
+    rgbInp.push(inp); rgbRow.appendChild(inp);
+    inp.addEventListener('input', function () {
+      var v = rgbInp.map(function (x) { return x.value.trim(); });
+      if (v.some(function (x) { return !/^\d{1,3}$/.test(x); })) return;
+      v = v.map(Number);
+      if (v.some(function (x) { return x > 255; })) return;
+      setFrom(rgb2hex(v), 'rgb');
+    });
+    inp.addEventListener('change', function () {     // 入力が終わったとき。範囲を整え、空欄は元の値に戻す
+      var base = hex2rgb(hex);
+      var v = rgbInp.map(function (x, j) {
+        var n2 = parseInt(x.value, 10);
+        return isNaN(n2) ? base[j] : Math.min(255, Math.max(0, n2));
+      });
+      setFrom(rgb2hex(v), null);
+    });
+  });
+  rgbLab.htmlFor = rgbInp[0].id;
+  root.appendChild(rgbRow);
+
+  /* 色の見本 */
+  function buildPalette() {
+    palBox.innerHTML = '';
+    palette.forEach(function (c) {
+      var b = mk('button');
+      b.type = 'button';
+      b.style.background = c;
+      b.setAttribute('data-c', c);
+      b.setAttribute('aria-label', c);
+      b.addEventListener('click', function () {
+        cur = hex2hsl(c); hex = c;
+        refresh();
+        changeFn(hex);
+      });
+      palBox.appendChild(b);
+    });
+  }
+
+  /* 色が決まったあとの、共通の処理(src: 今、入力中の欄。その欄だけは、書き換えない) */
+  function setFrom(h, src) {
+    if (hsl2hex(cur[0], cur[1], cur[2]) !== h) cur = hex2hsl(h);
+    hex = h;
+    refresh(src);
+    changeFn(hex);
+  }
+
+  function refresh(src) {
+    rows.h.inp.value = cur[0]; rows.s.inp.value = cur[1]; rows.l.inp.value = cur[2];
+    rows.h.val.textContent = cur[0] + '\u00b0';
+    rows.s.val.textContent = cur[1] + '%';
+    rows.l.val.textContent = cur[2] + '%';
+    rows.s.inp.style.background = 'linear-gradient(to right,' + hsl2hex(cur[0], 0, cur[2]) + ',' + hsl2hex(cur[0], 100, cur[2]) + ')';
+    rows.l.inp.style.background = 'linear-gradient(to right,#000,' + hsl2hex(cur[0], cur[1], 50) + ',#fff)';
+    if (src !== 'hex') hexInp.value = hex;
+    if (src !== 'rgb') { var c = hex2rgb(hex); for (var i = 0; i < 3; i++) rgbInp[i].value = c[i]; }
+    var bs = palBox.children;
+    for (var j = 0; j < bs.length; j++) bs[j].classList.toggle('sel', bs[j].getAttribute('data-c') === hex);
+  }
+
+  /* 表示の枠: inline(ページに埋め込む) / dialog(画面の端に出る小窓) */
+  var dlg = null, closeBtn = null;
+  if (mode === 'dialog') {
+    dlg = mk('div', 'cp-dlg');
+    dlg.setAttribute('role', 'dialog'); dlg.setAttribute('aria-modal', 'false');
+    dlg.hidden = true; dlg.tabIndex = -1;
+    title.id = uid + '-t'; dlg.setAttribute('aria-labelledby', title.id);
+    var hd = mk('div', 'cp-dlg-h');
+    closeBtn = mk('button', 'cp-close'); closeBtn.type = 'button'; closeBtn.textContent = '\u00d7';
+    hd.appendChild(title); hd.appendChild(closeBtn);
+    dlg.appendChild(hd); dlg.appendChild(root);
+    closeBtn.addEventListener('click', function () { api.close(); });
+    dlg.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); api.close(); } });
+    document.body.appendChild(dlg);
+  } else {
+    root.insertBefore(title, root.firstChild);
+    if (opts.host) opts.host.appendChild(root);
+  }
+
+  function applyTexts() {
+    palBox.setAttribute('aria-label', texts.palette);
+    for (var k in rows) {
+      rows[k].lab.textContent = texts[rows[k].key];
+      rows[k].dec.setAttribute('aria-label', texts[rows[k].key] + ' ' + texts.dec);
+      rows[k].inc.setAttribute('aria-label', texts[rows[k].key] + ' ' + texts.inc);
+    }
+    hexLab.textContent = texts.hex;
+    rgbLab.textContent = texts.rgb;
+    if (closeBtn) closeBtn.setAttribute('aria-label', texts.close);
+  }
+
+  /* 外から使う関数 */
+  var api = {
+    el: dlg || root,
+    getColor: function () { return hex; },
+    setColor: function (c) {
+      c = String(c || '').toLowerCase();
+      if (!HEX.test(c)) return;
+      if (hsl2hex(cur[0], cur[1], cur[2]) !== c) cur = hex2hsl(c);
+      hex = c;
+      refresh();
+    },
+    setTitle: function (s) { title.textContent = s; },
+    setTexts: function (t) { for (var k in t) texts[k] = t[k]; applyTexts(); },
+    setPalette: function (p) { palette = p.slice(); buildPalette(); refresh(); },
+    setVisible: function (v) { if (dlg) dlg.hidden = !v; else root.style.display = v ? '' : 'none'; },
+    isOpen: function () { return dlg ? !dlg.hidden : root.style.display !== 'none'; },
+    open: function () {
+      if (!dlg || !dlg.hidden) return;
+      lastFocus = document.activeElement;
+      dlg.hidden = false;
+      try { dlg.focus({ preventScroll: true }); } catch (e) {}
+    },
+    close: function () {
+      if (!dlg || dlg.hidden) return;
+      stopHold();
+      dlg.hidden = true;
+      if (lastFocus && lastFocus.focus) { try { lastFocus.focus({ preventScroll: true }); } catch (e) {} }
+      closeFn();
+    },
+    onChange: function (fn) { changeFn = typeof fn === 'function' ? fn : function () {}; }
+  };
+
+  buildPalette();
+  applyTexts();
+  api.setColor(opts.color || '#000000');
+  return api;
+}
+
+global.ColorPicker = { create: create, hsl2hex: hsl2hex, hex2hsl: hex2hsl, defaultPalette: DEFAULT_PALETTE };
+})(window);
+/* ColorPicker 部品(色の設定ツール)                  ―― 終了 ―― */
+</script>
+
+<script>
+(function () {
+'use strict';
+var $ = function (id) { return document.getElementById(id); };
+
+/* ============================================================
+   このページ自身の文言(日本語 / 英語)
+   ============================================================ */
+var T = {
+ja: {
+  title: '色の設定ツール(ColorPicker)の使い方',
+  lead: '色を選ぶための部品「ColorPicker」の、呼び出し方を見るためのページです。このHTMLの下のほうにある2つの <script> が、部品と、その呼び出しの例です。',
+  hPreview: '見本の図形', previewNote: '下の操作で変えた色が、ここに出ます。背景の縞模様は、色が重なって見える様子を確かめるための、背景画像の代わりです。',
+  h1: '① ページに埋め込んで表示する(inline)', d1: '場所を決めて、その中に部品を作ります。このように、開いたり閉じたりできる枠の中に置くと、ページが長くなりません。',
+  fillSummary: '図形の塗りの色',
+  h2: '② ダイアログ(小窓)で表示する(dialog)', d2: '色のボタンを押すと、画面の端に小窓が出ます(スマホでは下から、PCでは右下)。プレビューは隠れません。「×」かEscキーで閉じます。',
+  nFill: '図形の塗りの色', nStroke: '図形の線の色', nBg: '背景の色',
+  h3: '③ 部品の外から、色が変わるとき', d3: 'スライドショーのように、人の操作ではなく、プログラムが色を変える場合です。setColor で部品に伝えると、スライダーや色コードの表示も、追従します。このとき onChange は呼ばれません。部品を操作すると、自動の変更は止まります。',
+  randBtn: 'ランダムな色にする', autoStart: '自動で変える', autoStop: '停止',
+  hLog: '動作ログ', dLog: '「人が操作」のときだけ、onChange が呼ばれます。', logEmpty: 'まだありません。',
+  logUser: '人が操作(onChange)', logProg: 'プログラムが変更(setColor)',
+  hCode: 'コードの読み方', dCode: '呼び出しの基本形です。実際のコードは、このHTMLの最後の <script> にあります。',
+  foot: 'この部品とページは、AI(Claude / Anthropic)と一緒に作りました。自由に使えます。改変・再配布・商用利用も、連絡や表記は不要です。ただし無保証で、使用の結果について責任は負えません。',
+  other: 'English',
+  cp: { hue:'色相', sat:'彩度', lum:'明るさ', palette:'色の見本', hex:'色コード', rgb:'RGB', dec:'減らす', inc:'増やす', close:'閉じる' },
+  ptitle: function (name, hex) { return name + '  ' + hex; }
+},
+en: {
+  title: 'How to use ColorPicker',
+  lead: 'This page shows how to call "ColorPicker", a component for choosing colors. The two <script> blocks near the end of this HTML are the component and an example of calling it.',
+  hPreview: 'Sample shapes', previewNote: 'Colors you change below appear here. The striped background stands in for a background image, so you can see how colors overlap.',
+  h1: '① Embed it in the page (inline)', d1: 'Decide where it goes and create the component inside. Putting it in a collapsible box like this keeps the page from getting long.',
+  fillSummary: 'Fill color of the shapes',
+  h2: '② Show it as a dialog (dialog)', d2: 'Press a color button and a small window appears at the edge of the screen (at the bottom on phones, bottom right on PCs). The preview stays visible. Close it with "×" or the Esc key.',
+  nFill: 'Fill color', nStroke: 'Outline color', nBg: 'Background color',
+  h3: '③ When the color changes from outside the component', d3: 'This is when the program changes a color, not a person (like a slideshow). Tell the component with setColor and its sliders and color code follow along. onChange is not called then. Touching the component stops the automatic changes.',
+  randBtn: 'Random color', autoStart: 'Change automatically', autoStop: 'Stop',
+  hLog: 'Event log', dLog: 'onChange is called only when a person operates the component.', logEmpty: 'Nothing yet.',
+  logUser: 'Person (onChange)', logProg: 'Program (setColor)',
+  hCode: 'Reading the code', dCode: 'The basic way to call it. The actual code is in the last <script> of this HTML.',
+  foot: 'This component and page were made together with AI (Claude / Anthropic). Free to use. You may modify, redistribute and use them commercially, with no need to contact or credit anyone. Provided as is, without warranty; no responsibility is taken for the results of using them.',
+  other: '日本語',
+  cp: { hue:'Hue', sat:'Saturation', lum:'Lightness', palette:'Color swatches', hex:'Color code', rgb:'RGB', dec:'Decrease', inc:'Increase', close:'Close' },
+  ptitle: function (name, hex) { return name + '  ' + hex; }
+}};
+var LANG = 'ja';
+function t(k) { return T[LANG][k]; }
+function detectLang() {
+  try { var q = new URLSearchParams(location.search).get('lang'); if (q === 'ja' || q === 'en') return q; } catch (e) {}
+  try { var v = localStorage.getItem('cpDemoLang'); if (v === 'ja' || v === 'en') return v; } catch (e) {}
+  return /^ja/i.test(navigator.language || '') ? 'ja' : 'en';
+}
+
+/* ============================================================
+   色の状態と、画面の更新
+   色が変わったら、必ず paint() を通す(人の操作でも、プログラムの変更でも)
+   ============================================================ */
+var state = { fill: '#e04f39', stroke: '#0e1b38', bg: '#f6f3ec' };
+var NAME = { fill: 'nFill', stroke: 'nStroke', bg: 'nBg' };
+var pickers = {};
+
+function paint() {
+  var g = $('shapes');
+  g.setAttribute('fill', state.fill);
+  g.setAttribute('stroke', state.stroke);
+  $('stage').style.background = state.bg;
+  $('strokeBtn').style.background = state.stroke; $('strokeHex').textContent = state.stroke;
+  $('bgBtn').style.background = state.bg;         $('bgHex').textContent = state.bg;
+  for (var k in pickers) pickers[k].setTitle(t('ptitle')(t(NAME[k]), state[k]));
+}
+
+/* ============================================================
+   【① 部品を作る】 ここが、呼び出しの本体です
+   ============================================================ */
+var PAL = ColorPicker.defaultPalette;
+
+// (a) 埋め込み表示(inline): host に、場所を渡す
+pickers.fill = ColorPicker.create({
+  mode: 'inline',
+  host: $('fillHost'),
+  color: state.fill,
+  palette: PAL,
+  onChange: function (hex) { onUser('fill', hex); }
+});
+
+// (b) ダイアログ表示(dialog): host は、いらない
+['stroke', 'bg'].forEach(function (k) {
+  pickers[k] = ColorPicker.create({
+    mode: 'dialog',
+    color: state[k],
+    palette: PAL,
+    onChange: function (hex) { onUser(k, hex); }
+  });
+});
+
+// 色のボタンで、ダイアログを開閉する(ダイアログは、同時に1つだけ開く)
+function toggleDialog(k) {
+  if (pickers[k].isOpen()) { pickers[k].close(); return; }
+  ['stroke', 'bg'].forEach(function (o) { if (o !== k) pickers[o].close(); });
+  pickers[k].open();
+}
+$('strokeBtn').addEventListener('click', function () { toggleDialog('stroke'); });
+$('bgBtn').addEventListener('click', function () { toggleDialog('bg'); });
+
+/* ============================================================
+   【② 人が操作したとき】 onChange から呼ばれる
+   ============================================================ */
+function onUser(k, hex) {
+  stopAuto();                 // 人が触ったら、自動の変更は止める
+  state[k] = hex;
+  paint();
+  log('user', k, hex);
+}
+
+/* ============================================================
+   【③ 部品の外から、色を変えるとき】
+   setColor は、onChange を呼ばない。画面の更新(paint)は、自分でする。
+   ============================================================ */
+function setFromProgram(k, hex) {
+  state[k] = hex;
+  pickers[k].setColor(hex);   // スライダー・色コード・RGBの表示が、追従する
+  paint();
+  log('prog', k, hex);
+}
+function randomHex() { return ColorPicker.hsl2hex(Math.floor(Math.random() * 360), 65, 55); }
+
+var autoTimer = null;
+function updateAutoBtn() {
+  var b = $('autoBtn');
+  b.textContent = autoTimer ? t('autoStop') : t('autoStart');
+  b.setAttribute('aria-pressed', autoTimer ? 'true' : 'false');
+  b.classList.toggle('primary', !!autoTimer);
+}
+function startAuto() {
+  stopAuto();
+  setFromProgram('fill', randomHex());
+  autoTimer = setInterval(function () { setFromProgram('fill', randomHex()); }, 2500);
+  updateAutoBtn();
+}
+function stopAuto() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; updateAutoBtn(); } }
+$('autoBtn').addEventListener('click', function () { if (autoTimer) stopAuto(); else startAuto(); });
+$('randBtn').addEventListener('click', function () { stopAuto(); setFromProgram('fill', randomHex()); });
+
+/* ============================================================
+   動作ログ
+   ============================================================ */
+var entries = [];
+function log(kind, k, hex) {
+  var d = new Date(), p = function (n) { return ('0' + n).slice(-2); };
+  entries.unshift({ kind: kind, k: k, hex: hex, time: p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) });
+  if (entries.length > 10) entries.pop();
+  renderLog();
+}
+function renderLog() {
+  var ul = $('log');
+  ul.innerHTML = '';
+  if (!entries.length) { var li0 = document.createElement('li'); li0.textContent = t('logEmpty'); ul.appendChild(li0); return; }
+  entries.forEach(function (e) {
+    var li = document.createElement('li');
+    var tag = document.createElement('span'); tag.className = 'tag' + (e.kind === 'user' ? ' user' : ''); tag.textContent = e.kind === 'user' ? t('logUser') : t('logProg');
+    var dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = e.hex;
+    var tx = document.createElement('span'); tx.textContent = e.time + '  ' + t(NAME[e.k]) + '  ' + e.hex;
+    li.appendChild(tag); li.appendChild(dot); li.appendChild(tx);
+    ul.appendChild(li);
+  });
+}
+
+/* ============================================================
+   【④ 言語の切り替え】 部品の文言は、setTexts で渡す
+   ============================================================ */
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(function (e) { e.textContent = t(e.getAttribute('data-i18n')); });
+  $('lang').textContent = t('other');
+  $('strokeBtn').setAttribute('aria-label', t('nStroke'));
+  $('bgBtn').setAttribute('aria-label', t('nBg'));
+  for (var k in pickers) pickers[k].setTexts(t('cp'));
+  updateAutoBtn();
+  renderLog();
+  paint();
+}
+$('lang').addEventListener('click', function () {
+  LANG = LANG === 'ja' ? 'en' : 'ja';
+  try { localStorage.setItem('cpDemoLang', LANG); } catch (e) {}
+  applyLang();
+});
+
+LANG = detectLang();
+applyLang();
+})();
+</script>
+</body>
+</html>
